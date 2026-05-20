@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #0f0f0f;
+  --color-surface: #1a1a1a;
+  --color-border: #2a2a2a;
+  --color-text: #e5e5e5;
+  --color-muted: #737373;
+  --color-accent: #f59e0b;
+  --color-status-new: #3b82f6;
+  --color-status-assigned: #eab308;
+  --color-status-in-progress: #f97316;
+  --color-status-closed: #22c55e;
+  --font-display: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply font-body bg-bg text-[var(--color-text)] antialiased min-h-screen;
+  }
+}

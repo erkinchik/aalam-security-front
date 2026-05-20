@@ -1,0 +1,17 @@
+services:
+  admin:
+    # IMAGE заменяется CD-скриптом / руками при первой раскатке.
+    # Формат: ghcr.io/<owner>/<repo>:latest
+    image: ${ADMIN_IMAGE}
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      # Контейнер слушает 8080 внутри. Хост-порт можно менять под reverse-proxy.
+      # Если перед админкой стоит nginx/caddy на хосте — оставьте 127.0.0.1
+      # биндинг, чтобы порт не торчал наружу.
+      - "127.0.0.1:8081:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
