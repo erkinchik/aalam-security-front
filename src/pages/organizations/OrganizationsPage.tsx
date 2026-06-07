@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getOrganizations, createOrganization } from "../../api/admin";
 import { Button } from "../../components/ui/Button";
@@ -54,7 +55,7 @@ export function OrganizationsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <h1 className="font-display text-2xl font-semibold text-[var(--color-text)]">
           Организации
         </h1>
@@ -64,41 +65,78 @@ export function OrganizationsPage() {
       {isLoading ? (
         <p className="text-[var(--color-muted)]">Загрузка…</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-[var(--color-border)] bg-surface">
-                <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
-                  Название
-                </th>
-                <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
-                  Идентификатор
-                </th>
-                <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
-                  Тип
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {(organizations ?? []).map((org) => (
-                <tr
-                  key={org.id}
-                  className="border-b border-[var(--color-border)] hover:bg-surface/50"
-                >
-                  <td className="px-4 py-3 text-sm text-[var(--color-text)]">
-                    {org.name}
-                  </td>
-                  <td className="px-4 py-3 font-display text-sm text-[var(--color-muted)]">
-                    {org.slug}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[var(--color-muted)]">
-                    {ORG_TYPE_LABEL[org.type] ?? org.type}
-                  </td>
+        <>
+          {/* mobile: cards */}
+          <div className="md:hidden space-y-3">
+            {(organizations ?? []).map((org) => (
+              <Link
+                key={org.id}
+                to={`/organizations/${org.id}`}
+                className="block rounded-lg border border-[var(--color-border)] bg-surface p-4 space-y-1 hover:bg-surface/80"
+              >
+                <div className="text-sm font-medium text-[var(--color-text)]">
+                  {org.name}
+                </div>
+                <div className="font-display text-xs text-[var(--color-muted)]">
+                  {org.slug} · {ORG_TYPE_LABEL[org.type] ?? org.type}
+                </div>
+              </Link>
+            ))}
+            {(organizations ?? []).length === 0 && (
+              <p className="text-sm text-[var(--color-muted)] text-center py-8">
+                Организаций нет
+              </p>
+            )}
+          </div>
+
+          {/* desktop: table */}
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-[var(--color-border)]">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-[var(--color-border)] bg-surface">
+                  <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
+                    Название
+                  </th>
+                  <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
+                    Идентификатор
+                  </th>
+                  <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
+                    Тип
+                  </th>
+                  <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
+                    &nbsp;
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {(organizations ?? []).map((org) => (
+                  <tr
+                    key={org.id}
+                    className="border-b border-[var(--color-border)] hover:bg-surface/50"
+                  >
+                    <td className="px-4 py-3 text-sm text-[var(--color-text)]">
+                      {org.name}
+                    </td>
+                    <td className="px-4 py-3 font-display text-sm text-[var(--color-muted)]">
+                      {org.slug}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[var(--color-muted)]">
+                      {ORG_TYPE_LABEL[org.type] ?? org.type}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        to={`/organizations/${org.id}`}
+                        className="text-sm text-accent hover:underline"
+                      >
+                        Открыть
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {showCreate && (

@@ -84,6 +84,52 @@ export interface Organization {
   type: OrganizationType
 }
 
+export type OrgMemberRole = 'OWNER' | 'MANAGER' | 'OPERATOR' | 'MEMBER'
+
+export interface VenueDetail {
+  id: string
+  name: string
+  address: string | null
+  apartment: string | null
+  floor: string | null
+  entrance: string | null
+  doorCode: string | null
+  addressNotes: string | null
+  latitude: number | null
+  longitude: number | null
+  inviteCode: string
+  createdAt: string
+}
+
+export interface OrganizationMemberDetail {
+  id: string
+  role: OrgMemberRole
+  createdAt: string
+  user: { id: string; email: string; role: string }
+  venue: { id: string; name: string } | null
+}
+
+export interface OrganizationDetail extends Organization {
+  inviteCode: string | null
+  createdAt: string
+  venues: VenueDetail[]
+  members: OrganizationMemberDetail[]
+}
+
+export interface CreateVenuePayload {
+  name: string
+  address?: string
+  apartment?: string
+  floor?: string
+  entrance?: string
+  doorCode?: string
+  addressNotes?: string
+  latitude?: number
+  longitude?: number
+}
+
+export type UpdateVenuePayload = Partial<CreateVenuePayload>
+
 export type OrganizationApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface OrganizationApplicationBranch {

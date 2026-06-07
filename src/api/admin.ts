@@ -3,9 +3,13 @@ import type {
   EmergenciesQuery,
   EmergenciesResponse,
   EmergencySession,
+  CreateVenuePayload,
   OperatorWithStatus,
   Organization,
+  OrganizationDetail,
   OrganizationApplicationDetail,
+  UpdateVenuePayload,
+  VenueDetail,
   OrganizationApplicationStatus,
   OrganizationApplicationsResponse,
   OrganizationApplicationBranch,
@@ -60,6 +64,44 @@ export async function getOperators(organizationId?: string): Promise<OperatorWit
 
 export async function getOrganizations(): Promise<Organization[]> {
   const { data } = await apiClient.get<Organization[]>('/admin/organizations')
+  return data
+}
+
+export async function getOrganizationById(id: string): Promise<OrganizationDetail> {
+  const { data } = await apiClient.get<OrganizationDetail>(`/admin/organizations/${id}`)
+  return data
+}
+
+export async function createVenue(
+  organizationId: string,
+  payload: CreateVenuePayload,
+): Promise<VenueDetail> {
+  const { data } = await apiClient.post<VenueDetail>(
+    `/admin/organizations/${organizationId}/venues`,
+    payload,
+  )
+  return data
+}
+
+export async function updateVenue(
+  venueId: string,
+  payload: UpdateVenuePayload,
+): Promise<VenueDetail> {
+  const { data } = await apiClient.patch<VenueDetail>(`/admin/venues/${venueId}`, payload)
+  return data
+}
+
+export async function deleteVenue(venueId: string): Promise<{ status: string }> {
+  const { data } = await apiClient.delete<{ status: string }>(`/admin/venues/${venueId}`)
+  return data
+}
+
+export async function removeOrganizationMember(
+  memberId: string,
+): Promise<{ status: string }> {
+  const { data } = await apiClient.delete<{ status: string }>(
+    `/admin/organization-members/${memberId}`,
+  )
   return data
 }
 
