@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sidebar } from '../components/layout/Sidebar'
 import { Header } from '../components/layout/Header'
 import { AlarmBanner } from '../components/AlarmBanner'
@@ -8,6 +8,13 @@ import { useAlarmStore } from '../stores/alarmStore'
 
 export function Layout() {
   useEmergencySocket()
+
+  const [isMobileNavOpen, setMobileNavOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [location.pathname])
 
   useEffect(() => {
     const onInteraction = () => {
@@ -28,11 +35,14 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-bg">
-      <Sidebar />
+      <Sidebar
+        isMobileOpen={isMobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+      />
       <div className="flex flex-1 flex-col min-w-0">
-        <Header />
+        <Header onMobileMenuOpen={() => setMobileNavOpen(true)} />
         <AlarmBanner />
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-3 sm:p-6 overflow-auto">
           <Outlet />
         </main>
       </div>

@@ -98,44 +98,92 @@ export function EmergenciesListPage() {
         Тревоги
       </h1>
 
-      <div className="mb-6 flex flex-wrap gap-4">
-        <Select
-          label="Статус"
-          options={STATUS_OPTIONS}
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as EmergencyStatus | "")}
-        />
-        <Select
-          label="Организация"
-          options={[{ value: "", label: "Все" }, ...orgOptions]}
-          value={orgFilter}
-          onChange={(e) => setOrgFilter(e.target.value)}
-        />
-        <Select
-          label="Назначена"
-          options={[
-            { value: "", label: "Все" },
-            { value: "true", label: "Да" },
-            { value: "false", label: "Нет" },
-          ]}
-          value={assignedFilterState}
-          onChange={(e) => setAssignedFilterState(e.target.value)}
-        />
-        <div className="flex items-end">
-          <button
-            onClick={applyFilters}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black hover:bg-amber-500"
-          >
-            Применить
-          </button>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="w-full sm:w-auto">
+          <Select
+            label="Статус"
+            options={STATUS_OPTIONS}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as EmergencyStatus | "")}
+          />
         </div>
+        <div className="w-full sm:w-auto">
+          <Select
+            label="Организация"
+            options={[{ value: "", label: "Все" }, ...orgOptions]}
+            value={orgFilter}
+            onChange={(e) => setOrgFilter(e.target.value)}
+          />
+        </div>
+        <div className="w-full sm:w-auto">
+          <Select
+            label="Назначена"
+            options={[
+              { value: "", label: "Все" },
+              { value: "true", label: "Да" },
+              { value: "false", label: "Нет" },
+            ]}
+            value={assignedFilterState}
+            onChange={(e) => setAssignedFilterState(e.target.value)}
+          />
+        </div>
+        <button
+          onClick={applyFilters}
+          className="w-full sm:w-auto rounded-md bg-accent px-4 py-2 text-sm font-medium text-black hover:bg-amber-500"
+        >
+          Применить
+        </button>
       </div>
 
       {isLoading ? (
         <p className="text-[var(--color-muted)]">Загрузка…</p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+          {/* mobile: cards */}
+          <div className="md:hidden space-y-3">
+            {(data?.data ?? []).map((e: EmergencySession) => (
+              <Link
+                key={e.id}
+                to={`/emergencies/${e.id}`}
+                className="block rounded-lg border border-[var(--color-border)] bg-surface p-4 space-y-2 hover:bg-surface/80"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-[var(--color-text)] truncate">
+                      {e.user.email}
+                    </div>
+                    <div className="font-display text-xs text-[var(--color-muted)] mt-0.5">
+                      {truncateId(e.id)}
+                    </div>
+                  </div>
+                  <Badge
+                    variant={
+                      e.status === "NEW"
+                        ? "new"
+                        : e.status === "ASSIGNED"
+                        ? "assigned"
+                        : e.status === "IN_PROGRESS"
+                        ? "in-progress"
+                        : "closed"
+                    }
+                  >
+                    {STATUS_LABEL[e.status]}
+                  </Badge>
+                </div>
+                <div className="text-xs text-[var(--color-muted)] space-y-0.5">
+                  <div>Организация: <span className="text-[var(--color-text)]">{e.organization?.name ?? "—"}</span></div>
+                  <div>Назначен: <span className="text-[var(--color-text)]">{e.assignedOperator?.email ?? "—"}</span></div>
+                  <div>Создана: {new Date(e.createdAt).toLocaleString()}</div>
+                </div>
+              </Link>
+            ))}
+            {(data?.data ?? []).length === 0 && (
+              <p className="text-sm text-[var(--color-muted)] text-center py-8">Ничего не найдено</p>
+            )}
+          </div>
+
+          {/* desktop: table */}
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-[var(--color-border)]">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-surface">
@@ -213,7 +261,7 @@ export function EmergenciesListPage() {
           </div>
 
           {totalPages > 1 && (
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setPage(page - 1)}
                 disabled={page <= 1}

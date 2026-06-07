@@ -8,7 +8,7 @@ export function AlarmBanner() {
   if (!isRinging) return null
 
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-red-500/40 bg-red-600/90 px-6 py-3 text-white animate-pulse">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-red-500/40 bg-red-600/90 px-3 sm:px-6 py-3 text-white animate-pulse">
       <div className="font-display text-sm font-semibold">
         Новая тревога{pendingCount > 1 ? ` (×${pendingCount})` : ''} — нажмите в любом месте, чтобы заглушить
       </div>

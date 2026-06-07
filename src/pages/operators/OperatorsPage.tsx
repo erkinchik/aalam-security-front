@@ -43,19 +43,19 @@ export function OperatorsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <h1 className="font-display text-2xl font-semibold text-[var(--color-text)]">
           Операторы
         </h1>
         <Link
           to="/operators/new"
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-black hover:bg-amber-500"
+          className="w-full sm:w-auto rounded-md bg-accent px-4 py-2 text-sm font-medium text-black text-center hover:bg-amber-500"
         >
           Создать оператора
         </Link>
       </div>
 
-      <div className="mb-6 max-w-xs">
+      <div className="mb-6 w-full sm:max-w-xs">
         <Select
           label="Фильтр по организации"
           options={[{ value: "", label: "Все" }, ...orgOptions]}
@@ -67,8 +67,43 @@ export function OperatorsPage() {
       {isLoading ? (
         <p className="text-[var(--color-muted)]">Загрузка…</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
-          <table className="w-full text-left">
+        <>
+          {/* mobile: cards */}
+          <div className="md:hidden space-y-3">
+            {(operators ?? []).map((op) => (
+              <div
+                key={op.id}
+                className="rounded-lg border border-[var(--color-border)] bg-surface p-4 space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-sm font-medium text-[var(--color-text)] truncate">
+                    {op.email}
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span
+                      className={`inline-flex h-2 w-2 rounded-full ${
+                        op.isOnline ? "bg-status-closed" : "bg-[var(--color-muted)]"
+                      }`}
+                    />
+                    <span className="text-xs text-[var(--color-muted)]">
+                      {op.isOnline ? "Онлайн" : "Не в сети"}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-xs text-[var(--color-muted)] space-y-0.5">
+                  <div>Организации: <span className="text-[var(--color-text)]">{op.orgMemberships.map((m: { organization: { name: string } }) => m.organization.name).join(", ") || "—"}</span></div>
+                  <div>Активных сессий: <span className="text-[var(--color-text)]">{op.activeSessionCount}</span></div>
+                </div>
+              </div>
+            ))}
+            {(operators ?? []).length === 0 && (
+              <p className="text-sm text-[var(--color-muted)] text-center py-8">Ничего не найдено</p>
+            )}
+          </div>
+
+          {/* desktop: table */}
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-[var(--color-border)]">
+            <table className="w-full text-left">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-surface">
                 <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
@@ -115,7 +150,8 @@ export function OperatorsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

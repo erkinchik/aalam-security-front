@@ -76,22 +76,54 @@ export function OrganizationApplicationsListPage() {
         Заявки организаций
       </h1>
 
-      <div className="mb-6 flex flex-wrap items-end gap-4">
-        <Select
-          label="Статус"
-          options={STATUS_OPTIONS}
-          value={status ?? ""}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as OrganizationApplicationStatus | "")
-          }
-        />
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="w-full sm:w-auto">
+          <Select
+            label="Статус"
+            options={STATUS_OPTIONS}
+            value={status ?? ""}
+            onChange={(e) =>
+              setStatusFilter(e.target.value as OrganizationApplicationStatus | "")
+            }
+          />
+        </div>
       </div>
 
       {isLoading ? (
         <p className="text-[var(--color-muted)]">Загрузка…</p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+          {/* mobile: cards */}
+          <div className="md:hidden space-y-3">
+            {(data?.data ?? []).map((row: OrganizationApplicationListItem) => (
+              <Link
+                key={row.id}
+                to={`/organization-applications/${row.id}`}
+                className="block rounded-lg border border-[var(--color-border)] bg-surface p-4 space-y-2 hover:bg-surface/80"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-[var(--color-text)] truncate">
+                      {row.organizationName}
+                    </div>
+                    <div className="text-xs text-[var(--color-muted)] mt-0.5">
+                      {new Date(row.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <Badge variant={statusVariant(row.status)}>{STATUS_LABEL[row.status]}</Badge>
+                </div>
+                <div className="text-xs text-[var(--color-muted)]">
+                  Заявитель: <span className="text-[var(--color-text)]">{row.user.email}</span>
+                </div>
+              </Link>
+            ))}
+            {(data?.data ?? []).length === 0 && (
+              <p className="text-sm text-[var(--color-muted)] text-center py-8">Заявок нет</p>
+            )}
+          </div>
+
+          {/* desktop: table */}
+          <div className="hidden md:block overflow-x-auto rounded-lg border border-[var(--color-border)]">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-surface">
@@ -145,11 +177,11 @@ export function OrganizationApplicationsListPage() {
           </div>
 
           {data && data.data.length === 0 && (
-            <p className="mt-4 text-[var(--color-muted)] text-sm">Заявок нет.</p>
+            <p className="mt-4 text-[var(--color-muted)] text-sm hidden md:block">Заявок нет.</p>
           )}
 
           {totalPages > 1 && (
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <Button
                 variant="secondary"
                 size="sm"

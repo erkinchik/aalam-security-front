@@ -110,7 +110,7 @@ export function EmergencyDetailPage() {
         ← Назад
       </button>
 
-      <div className="mb-6 flex items-start justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold text-[var(--color-text)]">
             Тревога {truncateId(data.id)}
@@ -129,7 +129,7 @@ export function EmergencyDetailPage() {
             {STATUS_LABEL[data.status]}
           </Badge>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 [&>button]:w-full sm:[&>button]:w-auto">
           {canAssign && (
             <Button size="sm" onClick={() => setShowAssign(true)}>
               Назначить
