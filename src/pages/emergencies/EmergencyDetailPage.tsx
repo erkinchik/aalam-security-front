@@ -8,6 +8,7 @@ import {
   unassignEmergency,
   closeEmergency,
 } from "../../api/admin";
+import { MapView } from "../../components/MapView";
 import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { AssignModal } from "../../components/emergencies/AssignModal";
@@ -195,7 +196,27 @@ export function EmergencyDetailPage() {
         )}
         {(data.locations?.length ?? 0) > 0 && (
           <div>
-            <h2 className="text-sm font-medium text-[var(--color-muted)] mb-2">Координаты</h2>
+            <h2 className="text-sm font-medium text-[var(--color-muted)] mb-2">На карте</h2>
+            <MapView
+              height={340}
+              // Вызов с объекта — одна точка с его координатами; личный вызов —
+              // цепочка точек с телефона. Первая всегда самая ранняя.
+              markers={(data.locations ?? []).map((loc: EmergencyLocation, i: number) => ({
+                position: [loc.latitude, loc.longitude] as [number, number],
+                kind: data.venue ? ("venue" as const) : ("person" as const),
+                label: `${data.venue ? data.venue.name : `Точка ${i + 1}`}<br/>${new Date(
+                  loc.createdAt,
+                ).toLocaleString()}`,
+              }))}
+              track={
+                data.venue
+                  ? undefined
+                  : (data.locations ?? []).map(
+                      (loc: EmergencyLocation) => [loc.latitude, loc.longitude] as [number, number],
+                    )
+              }
+            />
+            <h2 className="text-sm font-medium text-[var(--color-muted)] mb-2 mt-4">Координаты</h2>
             <ul className="space-y-2">
               {(data.locations ?? []).map((loc: EmergencyLocation) => (
                 <li

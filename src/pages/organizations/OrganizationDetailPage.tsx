@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { MapView } from "../../components/MapView";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
@@ -7,6 +8,10 @@ import {
   deleteVenue,
   getOrganizationById,
   removeOrganizationMember,
+  updateOrganization,
+  deleteOrganization,
+  addOrganizationMember,
+  updateOrganizationMember,
   updateVenue,
 } from "../../api/admin";
 import { Badge } from "../../components/ui/Badge";
@@ -153,6 +158,26 @@ function VenueForm({
           required
         />
       </div>
+      <div className="space-y-1">
+        <MapView
+          height={260}
+          markers={latValid && lonValid ? [{ position: [lat, lon], label: name || "Объект", kind: "venue" }] : []}
+          center={latValid && lonValid ? [lat, lon] : undefined}
+          onPick={(la, lo, addr) => {
+            // Шесть знаков — примерно 0.1 м, точнее для адреса бессмысленно.
+            setLatitude(la.toFixed(6));
+            setLongitude(lo.toFixed(6));
+            // Адрес приходит только когда точку выбрали из поиска. При обычном
+            // клике по карте его нет, и уже введённый текст мы не затираем.
+            if (addr) setAddress(addr);
+          }}
+        />
+        <p className="text-xs text-[var(--color-muted)]">
+          Найдите адрес через поиск или кликните по карте — координаты подставятся сами.
+          При выборе из поиска заполнится и поле адреса.
+        </p>
+      </div>
+
       {(latitude.trim() !== "" && !latValid) || (longitude.trim() !== "" && !lonValid) ? (
         <p className="text-xs text-red-400">
           Широта должна быть от -90 до 90, долгота — от -180 до 180.
@@ -320,6 +345,76 @@ export function OrganizationDetailPage() {
     onError: (err) => setDeleteError(extractError(err, "Не удалось удалить точку")),
   });
 
+  const navigate = useNavigate();
+
+  // ── управление самой организацией ────────────────────────────────────────
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [orgError, setOrgError] = useState<string | null>(null);
+
+  const renameMutation = useMutation({
+    mutationFn: (name: string) => updateOrganization(id!, { name }),
+    onSuccess: () => {
+      setRenaming(false);
+      setOrgError(null);
+      void queryClient.invalidateQueries({ queryKey: ["organization-detail", id] });
+      void queryClient.invalidateQueries({ queryKey: ["organizations"] });
+    },
+    onError: (e) => setOrgError(extractError(e, "Не удалось переименовать")),
+  });
+
+  const deleteOrgMutation = useMutation({
+    mutationFn: () => deleteOrganization(id!),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["organizations"] });
+      navigate("/organizations");
+    },
+    onError: (e) => setOrgError(extractError(e, "Не удалось удалить организацию")),
+  });
+
+  // ── участники ────────────────────────────────────────────────────────────
+  const [memberEmail, setMemberEmail] = useState("");
+  const [memberRole, setMemberRole] = useState<OrgMemberRole>("MEMBER");
+  const [memberVenueId, setMemberVenueId] = useState("");
+  const [addMemberError, setAddMemberError] = useState<string | null>(null);
+
+  const addMemberMutation = useMutation({
+    mutationFn: () =>
+      addOrganizationMember(id!, {
+        email: memberEmail.trim(),
+        role: memberRole,
+        ...(memberVenueId ? { venueId: memberVenueId } : {}),
+      }),
+    onSuccess: () => {
+      setMemberEmail("");
+      setMemberVenueId("");
+      setMemberRole("MEMBER");
+      setAddMemberError(null);
+      void queryClient.invalidateQueries({ queryKey: ["organization-detail", id] });
+    },
+    onError: (e) => setAddMemberError(extractError(e, "Не удалось добавить участника")),
+  });
+
+  const changeVenueMutation = useMutation({
+    mutationFn: (v: { memberId: string; venueId: string | null }) =>
+      updateOrganizationMember(v.memberId, { venueId: v.venueId }),
+    onSuccess: () => {
+      setAddMemberError(null);
+      void queryClient.invalidateQueries({ queryKey: ["organization-detail", id] });
+    },
+    onError: (e) => setAddMemberError(extractError(e, "Не удалось изменить привязку")),
+  });
+
+  const changeRoleMutation = useMutation({
+    mutationFn: (v: { memberId: string; role: OrgMemberRole }) =>
+      updateOrganizationMember(v.memberId, { role: v.role }),
+    onSuccess: () => {
+      setAddMemberError(null);
+      void queryClient.invalidateQueries({ queryKey: ["organization-detail", id] });
+    },
+    onError: (e) => setAddMemberError(extractError(e, "Не удалось изменить роль")),
+  });
+
   const removeMemberMutation = useMutation({
     mutationFn: (memberId: string) => removeOrganizationMember(memberId),
     onSuccess: () => {
@@ -342,11 +437,6 @@ export function OrganizationDetailPage() {
     }
     return map;
   }, [data]);
-
-  const orgWideMembers = useMemo(
-    () => (data ? data.members.filter((m) => m.venue == null) : []),
-    [data],
-  );
 
   if (error) {
     return (
@@ -384,15 +474,86 @@ export function OrganizationDetailPage() {
             <span>Создана {new Date(data.createdAt).toLocaleDateString()}</span>
           </div>
         </div>
-        {data.inviteCode ? (
-          <div className="rounded-lg border border-[var(--color-border)] bg-surface p-3 sm:min-w-[200px]">
-            <div className="text-xs text-[var(--color-muted)] mb-1">
-              Код для приёма в организацию
+        <div className="flex flex-col gap-3 sm:items-end">
+          {data.inviteCode ? (
+            <div className="rounded-lg border border-[var(--color-border)] bg-surface p-3 sm:min-w-[200px]">
+              <div className="text-xs text-[var(--color-muted)] mb-1">
+                Код для приёма в организацию
+              </div>
+              <CopyButton value={data.inviteCode} />
             </div>
-            <CopyButton value={data.inviteCode} />
+          ) : null}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setNewName(data.name);
+                setOrgError(null);
+                setRenaming(true);
+              }}
+            >
+              Переименовать
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={deleteOrgMutation.isPending}
+              onClick={() => {
+                setOrgError(null);
+                // Организация уносит с собой объекты и членства — переспрашиваем.
+                if (
+                  window.confirm(
+                    `Удалить «${data.name}»? Вместе с ней исчезнут ${data.venues.length} объектов ` +
+                      `и ${data.members.length} участников. История вызовов сохранится.`,
+                  )
+                ) {
+                  deleteOrgMutation.mutate();
+                }
+              }}
+            >
+              {deleteOrgMutation.isPending ? "Удаляем…" : "Удалить"}
+            </Button>
           </div>
-        ) : null}
+        </div>
       </div>
+
+      {orgError ? (
+        <div
+          role="alert"
+          className="rounded-md border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-400"
+        >
+          {orgError}
+        </div>
+      ) : null}
+
+      {renaming ? (
+        <Modal isOpen title="Переименовать организацию" onClose={() => setRenaming(false)}>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (newName.trim()) renameMutation.mutate(newName.trim());
+            }}
+          >
+            <Input
+              label="Название"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              autoFocus
+              required
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setRenaming(false)}>
+                Отмена
+              </Button>
+              <Button type="submit" disabled={!newName.trim() || renameMutation.isPending}>
+                {renameMutation.isPending ? "Сохранение…" : "Сохранить"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      ) : null}
 
       {removeMemberError ? (
         <div
@@ -443,14 +604,85 @@ export function OrganizationDetailPage() {
 
       <section className="space-y-3">
         <h2 className="font-display text-lg font-semibold text-[var(--color-text)]">
-          Без привязки к точке ({orgWideMembers.length})
+          Участники
         </h2>
 
-        {orgWideMembers.length === 0 ? (
-          <p className="text-sm text-[var(--color-muted)]">Нет участников без точки.</p>
+        <form
+          className="rounded-lg border border-[var(--color-border)] bg-surface p-4 space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (memberEmail.trim()) addMemberMutation.mutate();
+          }}
+        >
+          <div className="text-xs text-[var(--color-muted)]">
+            Пользователь должен быть уже зарегистрирован. Один человек состоит только в
+            одной организации — если он числится в другой, сначала уберите его оттуда.
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Input
+              label="Email"
+              value={memberEmail}
+              onChange={(e) => setMemberEmail(e.target.value)}
+              placeholder="employee@example.com"
+              type="email"
+              required
+            />
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-[var(--color-muted)]">Роль</label>
+              <select
+                className="rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)]"
+                value={memberRole}
+                onChange={(e) => setMemberRole(e.target.value as OrgMemberRole)}
+              >
+                {(["OWNER", "MANAGER", "OPERATOR", "MEMBER"] as OrgMemberRole[]).map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-[var(--color-muted)]">Объект</label>
+              <select
+                className="rounded-md border border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)]"
+                value={memberVenueId}
+                onChange={(e) => setMemberVenueId(e.target.value)}
+              >
+                <option value="">Вся организация</option>
+                {data.venues.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {memberRole === "OWNER" ? (
+            <p className="text-xs text-amber-400">
+              Владелец в организации один: прежний станет менеджером.
+            </p>
+          ) : null}
+          {addMemberError ? (
+            <p role="alert" className="text-xs text-red-400">
+              {addMemberError}
+            </p>
+          ) : null}
+          <div className="flex justify-end">
+            <Button type="submit" disabled={!memberEmail.trim() || addMemberMutation.isPending}>
+              {addMemberMutation.isPending ? "Добавляем…" : "Добавить участника"}
+            </Button>
+          </div>
+        </form>
+
+        <h3 className="text-sm font-medium text-[var(--color-muted)]">
+          Все участники ({data.members.length})
+        </h3>
+
+        {data.members.length === 0 ? (
+          <p className="text-sm text-[var(--color-muted)]">В организации ещё никого нет.</p>
         ) : (
           <div className="rounded-lg border border-[var(--color-border)] bg-surface divide-y divide-[var(--color-border)]">
-            {orgWideMembers.map((m) => {
+            {data.members.map((m) => {
               const isOwner = m.role === "OWNER";
               return (
                 <div
@@ -459,10 +691,44 @@ export function OrganizationDetailPage() {
                 >
                   <div className="text-sm text-[var(--color-text)] break-all">
                     {m.user.email}
-                    <span className="ml-2 text-xs text-[var(--color-muted)]">
-                      · {ROLE_LABEL[m.role] ?? m.role}
-                    </span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      className="rounded-md border border-[var(--color-border)] bg-transparent px-2 py-1 text-xs text-[var(--color-text)]"
+                      value={m.role}
+                      disabled={changeRoleMutation.isPending}
+                      onChange={(e) =>
+                        changeRoleMutation.mutate({
+                          memberId: m.id,
+                          role: e.target.value as OrgMemberRole,
+                        })
+                      }
+                    >
+                      {(["OWNER", "MANAGER", "OPERATOR", "MEMBER"] as OrgMemberRole[]).map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABEL[r]}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="rounded-md border border-[var(--color-border)] bg-transparent px-2 py-1 text-xs text-[var(--color-text)]"
+                      value={m.venue?.id ?? ""}
+                      disabled={changeVenueMutation.isPending}
+                      onChange={(e) =>
+                        changeVenueMutation.mutate({
+                          memberId: m.id,
+                          venueId: e.target.value === "" ? null : e.target.value,
+                        })
+                      }
+                      title="Объект, на который поедет группа по тревоге этого участника"
+                    >
+                      <option value="">Вся организация</option>
+                      {data.venues.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </select>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -482,6 +748,7 @@ export function OrganizationDetailPage() {
                       ? "Убираем…"
                       : "Убрать"}
                   </Button>
+                  </div>
                 </div>
               );
             })}

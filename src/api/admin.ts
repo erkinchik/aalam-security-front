@@ -7,6 +7,8 @@ import type {
   OperatorWithStatus,
   Organization,
   OrganizationDetail,
+  OrganizationMemberDetail,
+  OrgMemberRole,
   OrganizationApplicationDetail,
   UpdateVenuePayload,
   VenueDetail,
@@ -101,6 +103,44 @@ export async function removeOrganizationMember(
 ): Promise<{ status: string }> {
   const { data } = await apiClient.delete<{ status: string }>(
     `/admin/organization-members/${memberId}`,
+  )
+  return data
+}
+
+export async function updateOrganization(
+  id: string,
+  dto: { name?: string; type?: 'PERSONAL' | 'BUSINESS' },
+): Promise<Organization> {
+  const { data } = await apiClient.patch<Organization>(`/admin/organizations/${id}`, dto)
+  return data
+}
+
+export async function deleteOrganization(id: string): Promise<{ id: string; deleted: boolean }> {
+  const { data } = await apiClient.delete<{ id: string; deleted: boolean }>(
+    `/admin/organizations/${id}`,
+  )
+  return data
+}
+
+export async function addOrganizationMember(
+  organizationId: string,
+  dto: { email: string; role: OrgMemberRole; venueId?: string },
+): Promise<OrganizationMemberDetail> {
+  const { data } = await apiClient.post<OrganizationMemberDetail>(
+    `/admin/organizations/${organizationId}/members`,
+    dto,
+  )
+  return data
+}
+
+/** Назначение роли OWNER переводит прежнего владельца в менеджеры — это делает бэкенд. */
+export async function updateOrganizationMember(
+  memberId: string,
+  dto: { role?: OrgMemberRole; venueId?: string | null },
+): Promise<OrganizationMemberDetail> {
+  const { data } = await apiClient.patch<OrganizationMemberDetail>(
+    `/admin/organization-members/${memberId}`,
+    dto,
   )
   return data
 }
