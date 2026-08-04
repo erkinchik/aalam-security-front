@@ -90,19 +90,24 @@ function VenueForm({
     initial?.longitude != null ? String(initial.longitude) : "",
   );
 
+  // Координаты обязательны: при тревоге на объекте группа едет именно по ним,
+  // GPS телефона в этом режиме не запрашивается. Проверяем здесь, чтобы человек
+  // увидел подсказку сразу, а не получил 400 после отправки.
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  const latValid = latitude.trim() !== "" && Number.isFinite(lat) && lat >= -90 && lat <= 90;
+  const lonValid = longitude.trim() !== "" && Number.isFinite(lon) && lon >= -180 && lon <= 180;
+  const canSubmit = name.trim() !== "" && latValid && lonValid;
+
   const onSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    const payload: CreateVenuePayload = { name: name.trim() };
+    if (!canSubmit) return;
+    const payload: CreateVenuePayload = {
+      name: name.trim(),
+      latitude: lat,
+      longitude: lon,
+    };
     if (address.trim()) payload.address = address.trim();
-    if (latitude.trim()) {
-      const n = Number(latitude);
-      if (Number.isFinite(n)) payload.latitude = n;
-    }
-    if (longitude.trim()) {
-      const n = Number(longitude);
-      if (Number.isFinite(n)) payload.longitude = n;
-    }
     onSubmit(payload);
   };
 
@@ -137,6 +142,7 @@ function VenueForm({
           onChange={(e) => setLatitude(e.target.value)}
           placeholder="42.876543"
           inputMode="decimal"
+          required
         />
         <Input
           label="Долгота"
@@ -144,13 +150,24 @@ function VenueForm({
           onChange={(e) => setLongitude(e.target.value)}
           placeholder="74.604321"
           inputMode="decimal"
+          required
         />
       </div>
+      {(latitude.trim() !== "" && !latValid) || (longitude.trim() !== "" && !lonValid) ? (
+        <p className="text-xs text-red-400">
+          Широта должна быть от -90 до 90, долгота — от -180 до 180.
+        </p>
+      ) : (
+        <p className="text-xs text-[var(--color-muted)]">
+          По этим координатам группа выезжает на тревогу с объекта — GPS телефона в этом
+          случае не используется.
+        </p>
+      )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
           Отмена
         </Button>
-        <Button type="submit" disabled={!name.trim() || submitting}>
+        <Button type="submit" disabled={!canSubmit || submitting}>
           {submitting ? "Сохранение…" : submitLabel}
         </Button>
       </div>
