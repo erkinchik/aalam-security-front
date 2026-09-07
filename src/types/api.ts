@@ -20,6 +20,17 @@ export interface OrganizationRef {
 export interface VenueRef {
   id: string
   name: string
+  // Ниже — поля, которые API реально присылает в тревогах (см. include в
+  // getEmergencies), но в типе их не было. Из-за этого координаты объекта
+  // были недоступны коду, хотя лежали в ответе.
+  address?: string | null
+  apartment?: string | null
+  floor?: string | null
+  entrance?: string | null
+  doorCode?: string | null
+  addressNotes?: string | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 export interface EmergencyLocation {

@@ -12,6 +12,8 @@ export type MapMarker = {
   label?: string;
   /** Объект — куда едет группа; человек — где реально находится. */
   kind?: "venue" | "person";
+  /** Клик по маркеру — например, переход к карточке вызова. */
+  onClick?: () => void;
 };
 
 type Props = {
@@ -113,6 +115,10 @@ export function MapView({ markers = [], track, center, zoom, height = 320, onPic
     for (const m of markers) {
       const marker = L.marker(m.position, { icon: icon(m.kind) }).addTo(layer);
       if (m.label) marker.bindPopup(m.label);
+      if (m.onClick) {
+        marker.on("click", m.onClick);
+        marker.getElement()?.style.setProperty("cursor", "pointer");
+      }
     }
 
     if (track && track.length > 1) {

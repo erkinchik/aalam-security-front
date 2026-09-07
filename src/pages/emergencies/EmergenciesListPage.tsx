@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getEmergencies, getOrganizations } from "../../api/admin";
 import { Badge } from "../../components/ui/Badge";
+import { MapView, type MapMarker } from "../../components/MapView";
+import { WaitingTime } from "../../components/WaitingTime";
 import { Select } from "../../components/ui/Select";
 import type { EmergencyStatus, EmergencySession } from "../../types/api";
 
@@ -60,6 +62,34 @@ export function EmergenciesListPage() {
   const { data: organizations } = useQuery({
     queryKey: ["organizations"],
     queryFn: getOrganizations,
+  });
+
+  const navigate = useNavigate();
+  const [showMap, setShowMap] = useState(true);
+
+  // На карте только НЕЗАКРЫТЫЕ вызовы. Карта — инструмент дежурного «что
+  // происходит сейчас»: закрытые её захламляют, и их легко принять за живые.
+  // Координаты берём у объекта, а если вызов личный — последнюю точку GPS.
+  // Список уже приходит с ними, дополнительных запросов не нужно.
+  const mapMarkers: MapMarker[] = (data?.data ?? []).flatMap((e: EmergencySession) => {
+    if (e.status === "CLOSED") return [];
+    const v = e.venue;
+    const loc = e.locations?.[0];
+    const pos: [number, number] | null =
+      v && typeof v.latitude === "number" && typeof v.longitude === "number"
+        ? [v.latitude, v.longitude]
+        : loc
+          ? [loc.latitude, loc.longitude]
+          : null;
+    if (!pos) return [];
+    return [
+      {
+        position: pos,
+        kind: v ? ("venue" as const) : ("person" as const),
+        label: `<b>${v ? v.name : "Личный вызов"}</b><br/>${e.user?.email ?? ""}<br/>${STATUS_LABEL[e.status] ?? e.status}`,
+        onClick: () => navigate(`/emergencies/${e.id}`),
+      },
+    ];
   });
 
   const orgOptions = (organizations ?? []).map((o) => ({
@@ -135,6 +165,24 @@ export function EmergenciesListPage() {
         </button>
       </div>
 
+      {mapMarkers.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-sm font-medium text-[var(--color-muted)]">
+              Активные на карте ({mapMarkers.length})
+            </h2>
+            <button
+              type="button"
+              className="text-xs text-[var(--color-muted)] hover:text-[var(--color-text)]"
+              onClick={() => setShowMap((v) => !v)}
+            >
+              {showMap ? "Скрыть карту" : "Показать карту"}
+            </button>
+          </div>
+          {showMap && <MapView height={320} markers={mapMarkers} />}
+        </div>
+      )}
+
       {isLoading ? (
         <p className="text-[var(--color-muted)]">Загрузка…</p>
       ) : (
@@ -174,6 +222,7 @@ export function EmergenciesListPage() {
                   <div>Организация: <span className="text-[var(--color-text)]">{e.organization?.name ?? "—"}</span></div>
                   <div>Назначен: <span className="text-[var(--color-text)]">{e.assignedOperator?.email ?? "—"}</span></div>
                   <div>Создана: {new Date(e.createdAt).toLocaleString()}</div>
+                  <div><WaitingTime createdAt={e.createdAt} closedAt={e.closedAt} /></div>
                 </div>
               </Link>
             ))}
@@ -244,7 +293,10 @@ export function EmergenciesListPage() {
                       {e.assignedOperator?.email ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--color-muted)]">
-                      {new Date(e.createdAt).toLocaleString()}
+                      <div>{new Date(e.createdAt).toLocaleString()}</div>
+                      <div className="text-xs">
+                        <WaitingTime createdAt={e.createdAt} closedAt={e.closedAt} />
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <Link
