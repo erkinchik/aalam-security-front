@@ -79,10 +79,9 @@ export interface EmergenciesQuery {
 export interface OperatorWithStatus {
   id: string
   email: string
-  orgMemberships: Array<{
-    organization: { id: string; name: string }
-    role: string
-  }>
+  /** На смене — только таким операторам рассылается новый SOS. */
+  onShift: boolean
+  shiftStartedAt: string | null
   isOnline: boolean
   lastHeartbeatAt: string | null
   activeSessionCount: number

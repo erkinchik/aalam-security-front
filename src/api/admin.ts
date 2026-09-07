@@ -57,10 +57,17 @@ export async function closeEmergency(id: string, resolution?: string): Promise<E
   return data
 }
 
-export async function getOperators(organizationId?: string): Promise<OperatorWithStatus[]> {
-  const { data } = await apiClient.get<OperatorWithStatus[]>('/admin/operators', {
-    params: organizationId ? { organizationId } : undefined,
-  })
+/** Операторы — общий пул, к организациям не привязаны. */
+export async function getOperators(): Promise<OperatorWithStatus[]> {
+  const { data } = await apiClient.get<OperatorWithStatus[]>('/admin/operators')
+  return data
+}
+
+export async function setOperatorShift(
+  operatorId: string,
+  onShift: boolean,
+): Promise<Pick<OperatorWithStatus, 'id' | 'email' | 'onShift' | 'shiftStartedAt'>> {
+  const { data } = await apiClient.post(`/admin/operators/${operatorId}/shift`, { onShift })
   return data
 }
 
