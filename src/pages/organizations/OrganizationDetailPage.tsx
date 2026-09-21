@@ -29,7 +29,7 @@ import type {
 const ROLE_LABEL: Record<OrgMemberRole, string> = {
   OWNER: "Владелец",
   MANAGER: "Менеджер",
-  OPERATOR: "Оператор",
+  STAFF: "Сотрудник",
   MEMBER: "Участник",
 };
 
@@ -467,8 +467,8 @@ export function OrganizationDetailPage() {
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--color-muted)]">
             <span className="font-display">{data.slug}</span>
             <span>·</span>
-            <Badge variant={data.type === "BUSINESS" ? "app-approved" : "app-pending"}>
-              {data.type === "BUSINESS" ? "Бизнес" : "Личная"}
+            <Badge variant="app-approved">
+              Компания
             </Badge>
             <span>·</span>
             <span>Создана {new Date(data.createdAt).toLocaleDateString()}</span>
@@ -634,7 +634,7 @@ export function OrganizationDetailPage() {
                 value={memberRole}
                 onChange={(e) => setMemberRole(e.target.value as OrgMemberRole)}
               >
-                {(["OWNER", "MANAGER", "OPERATOR", "MEMBER"] as OrgMemberRole[]).map((r) => (
+                {(["OWNER", "MANAGER", "STAFF", "MEMBER"] as OrgMemberRole[]).map((r) => (
                   <option key={r} value={r}>
                     {ROLE_LABEL[r]}
                   </option>
@@ -704,7 +704,7 @@ export function OrganizationDetailPage() {
                         })
                       }
                     >
-                      {(["OWNER", "MANAGER", "OPERATOR", "MEMBER"] as OrgMemberRole[]).map((r) => (
+                      {(["OWNER", "MANAGER", "STAFF", "MEMBER"] as OrgMemberRole[]).map((r) => (
                         <option key={r} value={r}>
                           {ROLE_LABEL[r]}
                         </option>

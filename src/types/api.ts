@@ -1,5 +1,4 @@
 export type EmergencyStatus = 'NEW' | 'ASSIGNED' | 'IN_PROGRESS' | 'CLOSED'
-export type OrganizationType = 'PERSONAL' | 'BUSINESS'
 
 export interface AuthTokens {
   accessToken: string
@@ -87,14 +86,17 @@ export interface OperatorWithStatus {
   activeSessionCount: number
 }
 
+export interface OperatorDetail extends OperatorWithStatus {
+  createdAt: string
+}
+
 export interface Organization {
   id: string
   name: string
   slug: string
-  type: OrganizationType
 }
 
-export type OrgMemberRole = 'OWNER' | 'MANAGER' | 'OPERATOR' | 'MEMBER'
+export type OrgMemberRole = 'OWNER' | 'MANAGER' | 'STAFF' | 'MEMBER'
 
 export interface VenueDetail {
   id: string
@@ -193,7 +195,6 @@ export interface OrganizationApplicationDetail {
     id: string
     name: string
     slug: string
-    type: OrganizationType
   } | null
 }
 

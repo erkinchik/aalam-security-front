@@ -10,8 +10,7 @@ import { Badge } from "../../components/ui/Badge";
 import { Button } from "../../components/ui/Button";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
-import { Select } from "../../components/ui/Select";
-import type { OrganizationApplicationStatus, OrganizationType } from "../../types/api";
+import type { OrganizationApplicationStatus } from "../../types/api";
 
 function statusVariant(
   s: OrganizationApplicationStatus,
@@ -21,20 +20,10 @@ function statusVariant(
   return "app-pending";
 }
 
-const TYPE_OPTIONS: { value: OrganizationType; label: string }[] = [
-  { value: "BUSINESS", label: "Бизнес" },
-  { value: "PERSONAL", label: "Личная" },
-];
-
 const STATUS_LABEL: Record<OrganizationApplicationStatus, string> = {
   PENDING: "На рассмотрении",
   APPROVED: "Одобрена",
   REJECTED: "Отклонена",
-};
-
-const ORG_TYPE_LABEL: Record<string, string> = {
-  PERSONAL: "Личная",
-  BUSINESS: "Бизнес",
 };
 
 export function OrganizationApplicationDetailPage() {
@@ -45,7 +34,6 @@ export function OrganizationApplicationDetailPage() {
   const [showApprove, setShowApprove] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [approveName, setApproveName] = useState("");
-  const [approveType, setApproveType] = useState<OrganizationType>("BUSINESS");
   const [rejectReason, setRejectReason] = useState("");
 
   const { data, isLoading, error } = useQuery({
@@ -58,7 +46,6 @@ export function OrganizationApplicationDetailPage() {
     mutationFn: () =>
       approveOrganizationApplication(id!, {
         organizationName: approveName.trim() || undefined,
-        organizationType: approveType,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organization-application", id] });
@@ -97,9 +84,6 @@ export function OrganizationApplicationDetailPage() {
   function openApproveModal() {
     if (!data) return;
     setApproveName(data.organizationName);
-    setApproveType(
-      data.organizationType.toUpperCase() === "PERSONAL" ? "PERSONAL" : "BUSINESS",
-    );
     setShowApprove(true);
   }
 
@@ -149,9 +133,7 @@ export function OrganizationApplicationDetailPage() {
         </div>
         <div>
           <h2 className="text-sm font-medium text-[var(--color-muted)] mb-1">Тип (запрошенный)</h2>
-          <p className="text-[var(--color-text)]">
-            {ORG_TYPE_LABEL[data.organizationType.toUpperCase()] ?? data.organizationType}
-          </p>
+          <p className="text-[var(--color-text)]">{data.organizationType}</p>
         </div>
         {data.description && (
           <div>
@@ -215,9 +197,6 @@ export function OrganizationApplicationDetailPage() {
             >
               {data.approvedOrganization.name} ({data.approvedOrganization.slug})
             </Link>
-            <span className="text-sm text-[var(--color-muted)] ml-2">
-              {ORG_TYPE_LABEL[data.approvedOrganization.type] ?? data.approvedOrganization.type}
-            </span>
           </div>
         )}
         {data.status === "REJECTED" && data.rejectionReason && (
@@ -254,12 +233,6 @@ export function OrganizationApplicationDetailPage() {
               value={approveName}
               onChange={(e) => setApproveName(e.target.value)}
               required
-            />
-            <Select
-              label="Тип организации"
-              options={TYPE_OPTIONS}
-              value={approveType}
-              onChange={(e) => setApproveType(e.target.value as OrganizationType)}
             />
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="secondary" onClick={() => setShowApprove(false)}>
