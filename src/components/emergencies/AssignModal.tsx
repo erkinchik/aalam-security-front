@@ -22,12 +22,14 @@ export function AssignModal({
 }: AssignModalProps) {
   const [operatorId, setOperatorId] = useState("");
 
-  const { data: operators } = useQuery({
-    queryKey: ["operators"],
-    queryFn: () => getOperators(),
+  // Выпадашка показывает всех: страница берётся заведомо большая.
+  const { data: operatorsPage } = useQuery({
+    queryKey: ["operators", "all"],
+    queryFn: () => getOperators(1, 100),
   });
+  const operators = operatorsPage?.data ?? [];
 
-  const options = (operators ?? [])
+  const options = operators
     .filter((o) => o.id !== excludeOperatorId)
     // Дежурные наверх: они реально увидят назначение прямо сейчас.
     .sort((a, b) => Number(b.onShift) - Number(a.onShift) || a.email.localeCompare(b.email))

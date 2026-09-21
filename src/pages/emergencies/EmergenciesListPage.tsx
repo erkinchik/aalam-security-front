@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Pagination } from "../../components/ui/Pagination";
 import { getEmergencies, getOrganizations } from "../../api/admin";
 import { Badge } from "../../components/ui/Badge";
 import { MapView, type MapMarker } from "../../components/MapView";
@@ -59,10 +60,12 @@ export function EmergenciesListPage() {
       }),
   });
 
-  const { data: organizations } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: getOrganizations,
+  // Список для фильтра — берём заведомо большую страницу.
+  const { data: organizationsPage } = useQuery({
+    queryKey: ["organizations", "all"],
+    queryFn: () => getOrganizations(1, 100),
   });
+  const organizations = organizationsPage?.data;
 
   const navigate = useNavigate();
   const [showMap, setShowMap] = useState(true);
@@ -111,8 +114,6 @@ export function EmergenciesListPage() {
     params.set("page", String(newPage));
     setSearchParams(params);
   }
-
-  const totalPages = data ? Math.ceil(data.total / data.limit) : 0;
 
   if (error) {
     return (
@@ -312,27 +313,12 @@ export function EmergenciesListPage() {
             </table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setPage(page - 1)}
-                disabled={page <= 1}
-                className="rounded-md border border-[var(--color-border)] px-3 py-1 text-sm disabled:opacity-50"
-              >
-                Назад
-              </button>
-              <span className="flex items-center px-3 text-sm text-[var(--color-muted)]">
-                Страница {page} из {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(page + 1)}
-                disabled={page >= totalPages}
-                className="rounded-md border border-[var(--color-border)] px-3 py-1 text-sm disabled:opacity-50"
-              >
-                Вперёд
-              </button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            total={data?.total ?? 0}
+            limit={data?.limit ?? 20}
+            onPageChange={setPage}
+          />
         </>
       )}
     </div>

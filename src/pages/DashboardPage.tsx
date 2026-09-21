@@ -8,10 +8,11 @@ export function DashboardPage() {
     queryFn: () => getEmergencies({ page: 1, limit: 1 }),
   })
 
-  const { data: operators } = useQuery({
-    queryKey: ['operators'],
-    queryFn: () => getOperators(),
+  const { data: operatorsPage } = useQuery({
+    queryKey: ['operators', 'all'],
+    queryFn: () => getOperators(1, 100),
   })
+  const operators = operatorsPage?.data
 
   const totalEmergencies = emergencies?.total ?? 0
   const onlineOperators = operators?.filter((o) => o.isOnline).length ?? 0

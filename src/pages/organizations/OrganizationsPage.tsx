@@ -5,44 +5,35 @@ import { getOrganizations, createOrganization } from "../../api/admin";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
-import { Select } from "../../components/ui/Select";
+import { Pagination } from "../../components/ui/Pagination";
 
-const ORG_TYPES = [
-  { value: "PERSONAL", label: "Личная" },
-  { value: "BUSINESS", label: "Бизнес" },
-];
-
-const ORG_TYPE_LABEL: Record<string, string> = {
-  PERSONAL: "Личная",
-  BUSINESS: "Бизнес",
-};
+const PAGE_SIZE = 20;
 
 export function OrganizationsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
-  const [type, setType] = useState<"PERSONAL" | "BUSINESS">("BUSINESS");
 
   const queryClient = useQueryClient();
-  const { data: organizations, isLoading, error } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: getOrganizations,
+  const [page, setPage] = useState(1);
+  const { data: organizationsPage, isLoading, error } = useQuery({
+    queryKey: ["organizations", page],
+    queryFn: () => getOrganizations(page, PAGE_SIZE),
   });
+  const organizations = organizationsPage?.data;
 
   const createMutation = useMutation({
-    mutationFn: (dto: { name: string; type?: "PERSONAL" | "BUSINESS" }) =>
-      createOrganization(dto),
+    mutationFn: (dto: { name: string }) => createOrganization(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
       setShowCreate(false);
       setName("");
-      setType("BUSINESS");
     },
   });
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-    createMutation.mutate({ name: name.trim(), type });
+    createMutation.mutate({ name: name.trim() });
   }
 
   if (error) {
@@ -78,7 +69,7 @@ export function OrganizationsPage() {
                   {org.name}
                 </div>
                 <div className="font-display text-xs text-[var(--color-muted)]">
-                  {org.slug} · {ORG_TYPE_LABEL[org.type] ?? org.type}
+                  {org.slug}
                 </div>
               </Link>
             ))}
@@ -101,9 +92,6 @@ export function OrganizationsPage() {
                     Идентификатор
                   </th>
                   <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
-                    Тип
-                  </th>
-                  <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
                     &nbsp;
                   </th>
                 </tr>
@@ -120,9 +108,6 @@ export function OrganizationsPage() {
                     <td className="px-4 py-3 font-display text-sm text-[var(--color-muted)]">
                       {org.slug}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--color-muted)]">
-                      {ORG_TYPE_LABEL[org.type] ?? org.type}
-                    </td>
                     <td className="px-4 py-3">
                       <Link
                         to={`/organizations/${org.id}`}
@@ -136,6 +121,13 @@ export function OrganizationsPage() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            page={organizationsPage?.page ?? 1}
+            total={organizationsPage?.total ?? 0}
+            limit={organizationsPage?.limit ?? PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
 
@@ -165,14 +157,6 @@ export function OrganizationsPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="например, Додо Пицца"
               autoFocus
-            />
-            <Select
-              label="Тип"
-              options={ORG_TYPES}
-              value={type}
-              onChange={(e) =>
-                setType(e.target.value as "PERSONAL" | "BUSINESS")
-              }
             />
             <div className="flex justify-end gap-2 pt-4">
               <Button
