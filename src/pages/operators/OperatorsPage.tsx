@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AxiosError } from "axios";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getOperators, setOperatorShift } from "../../api/admin";
 import type { OperatorWithStatus } from "../../types/api";
+import { apiErrorMessage } from "../../utils/apiError";
+import { Pagination } from "../../components/ui/Pagination";
+
+const PAGE_SIZE = 20;
 
 function shiftLabel(op: OperatorWithStatus): string {
   if (!op.onShift) return "Не на смене";
@@ -19,10 +22,12 @@ export function OperatorsPage() {
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { data: operators, isLoading, error } = useQuery({
-    queryKey: ["operators"],
-    queryFn: getOperators,
+  const [page, setPage] = useState(1);
+  const { data: operatorsPage, isLoading, error } = useQuery({
+    queryKey: ["operators", page],
+    queryFn: () => getOperators(page, PAGE_SIZE),
   });
+  const operators = operatorsPage?.data;
 
   const shiftMutation = useMutation({
     mutationFn: ({ id, onShift }: { id: string; onShift: boolean }) =>
@@ -33,12 +38,7 @@ export function OperatorsPage() {
     },
     onError: (err) => {
       // 409 приходит с причиной — у оператора остались незакрытые вызовы.
-      const data =
-        err instanceof AxiosError
-          ? (err.response?.data as { message?: string | string[] } | undefined)
-          : undefined;
-      const message = Array.isArray(data?.message) ? data.message.join(", ") : data?.message;
-      setActionError(message || "Не удалось изменить смену");
+      setActionError(apiErrorMessage(err, "Не удалось изменить смену"));
     },
   });
 
@@ -96,9 +96,12 @@ export function OperatorsPage() {
                 className="rounded-lg border border-[var(--color-border)] bg-surface p-4 space-y-2"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="text-sm font-medium text-[var(--color-text)] truncate">
-                    {op.email}
-                  </div>
+                  <Link
+                    to={`/operators/${op.id}`}
+                    className="text-sm font-medium text-[var(--color-text)] truncate hover:underline"
+                  >
+                    {op.displayName || op.email}
+                  </Link>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span
                       className={`inline-flex h-2 w-2 rounded-full ${
@@ -111,6 +114,8 @@ export function OperatorsPage() {
                   </div>
                 </div>
                 <div className="text-xs text-[var(--color-muted)] space-y-0.5">
+                  {op.displayName && <div className="truncate">{op.email}</div>}
+                  {op.phone && <div>{op.phone}</div>}
                   <div>
                     Смена:{" "}
                     <span className={op.onShift ? "text-status-closed" : "text-[var(--color-text)]"}>
@@ -144,7 +149,10 @@ export function OperatorsPage() {
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-surface">
                   <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
-                    Email
+                    Оператор
+                  </th>
+                  <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
+                    Телефон
                   </th>
                   <th className="px-4 py-3 font-display text-xs font-medium text-[var(--color-muted)] uppercase">
                     Смена
@@ -164,7 +172,20 @@ export function OperatorsPage() {
                     key={op.id}
                     className="border-b border-[var(--color-border)] hover:bg-surface/50"
                   >
-                    <td className="px-4 py-3 text-sm text-[var(--color-text)]">{op.email}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <Link
+                        to={`/operators/${op.id}`}
+                        className="text-[var(--color-text)] hover:underline"
+                      >
+                        {op.displayName || op.email}
+                      </Link>
+                      {op.displayName && (
+                        <div className="text-xs text-[var(--color-muted)]">{op.email}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[var(--color-muted)]">
+                      {op.phone ?? "—"}
+                    </td>
                     <td className="px-4 py-3 text-sm">
                       <span className={op.onShift ? "text-status-closed" : "text-[var(--color-muted)]"}>
                         {shiftLabel(op)}
@@ -198,6 +219,13 @@ export function OperatorsPage() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            page={operatorsPage?.page ?? 1}
+            total={operatorsPage?.total ?? 0}
+            limit={operatorsPage?.limit ?? PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </>
       )}
     </div>

@@ -5,6 +5,8 @@ import type {
   EmergencySession,
   CreateVenuePayload,
   OperatorWithStatus,
+  OperatorDetail,
+  PaginatedResponse,
   Organization,
   OrganizationDetail,
   OrganizationMemberDetail,
@@ -15,7 +17,6 @@ import type {
   OrganizationApplicationStatus,
   OrganizationApplicationsResponse,
   OrganizationApplicationBranch,
-  OrganizationType,
   SubscriptionRequestDetail,
   SubscriptionRequestStatus,
   SubscriptionRequestsResponse,
@@ -58,8 +59,43 @@ export async function closeEmergency(id: string, resolution?: string): Promise<E
 }
 
 /** Операторы — общий пул, к организациям не привязаны. */
-export async function getOperators(): Promise<OperatorWithStatus[]> {
-  const { data } = await apiClient.get<OperatorWithStatus[]>('/admin/operators')
+export async function getOperators(
+  page = 1,
+  limit = 20,
+): Promise<PaginatedResponse<OperatorWithStatus>> {
+  const { data } = await apiClient.get<PaginatedResponse<OperatorWithStatus>>(
+    '/admin/operators',
+    { params: { page, limit } },
+  )
+  return data
+}
+
+export async function getOperator(operatorId: string): Promise<OperatorDetail> {
+  const { data } = await apiClient.get<OperatorDetail>(`/admin/operators/${operatorId}`)
+  return data
+}
+
+export async function updateOperator(
+  operatorId: string,
+  dto: { email?: string; displayName?: string; phone?: string },
+): Promise<OperatorDetail> {
+  const { data } = await apiClient.patch<OperatorDetail>(`/admin/operators/${operatorId}`, dto)
+  return data
+}
+
+export async function setOperatorPassword(
+  operatorId: string,
+  password: string,
+): Promise<{ status: string }> {
+  const { data } = await apiClient.post(`/admin/operators/${operatorId}/password`, { password })
+  return data
+}
+
+/** Мягкое удаление: контакты стираются, история вызовов остаётся. */
+export async function deleteOperator(
+  operatorId: string,
+): Promise<{ id: string; deleted: boolean }> {
+  const { data } = await apiClient.delete(`/admin/operators/${operatorId}`)
   return data
 }
 
@@ -71,8 +107,14 @@ export async function setOperatorShift(
   return data
 }
 
-export async function getOrganizations(): Promise<Organization[]> {
-  const { data } = await apiClient.get<Organization[]>('/admin/organizations')
+export async function getOrganizations(
+  page = 1,
+  limit = 20,
+): Promise<PaginatedResponse<Organization>> {
+  const { data } = await apiClient.get<PaginatedResponse<Organization>>(
+    '/admin/organizations',
+    { params: { page, limit } },
+  )
   return data
 }
 
@@ -116,7 +158,7 @@ export async function removeOrganizationMember(
 
 export async function updateOrganization(
   id: string,
-  dto: { name?: string; type?: 'PERSONAL' | 'BUSINESS' },
+  dto: { name?: string },
 ): Promise<Organization> {
   const { data } = await apiClient.patch<Organization>(`/admin/organizations/${id}`, dto)
   return data
@@ -152,10 +194,7 @@ export async function updateOrganizationMember(
   return data
 }
 
-export async function createOrganization(dto: {
-  name: string
-  type?: 'PERSONAL' | 'BUSINESS'
-}): Promise<Organization> {
+export async function createOrganization(dto: { name: string }): Promise<Organization> {
   const { data } = await apiClient.post<Organization>('/admin/organizations', dto)
   return data
 }
@@ -163,7 +202,6 @@ export async function createOrganization(dto: {
 export async function createOperator(dto: {
   email: string
   password: string
-  organizationId?: string
 }): Promise<{ id: string; email: string; role: string; createdAt: string }> {
   const { data } = await apiClient.post('/admin/users/create-operator', dto)
   return data
@@ -211,7 +249,7 @@ export async function getOrganizationApplicationById(
 
 export async function approveOrganizationApplication(
   id: string,
-  dto?: { organizationName?: string; organizationType?: OrganizationType },
+  dto?: { organizationName?: string },
 ): Promise<OrganizationApplicationDetail> {
   const { data } = await apiClient.post<OrganizationApplicationDetail>(
     `/admin/organization-applications/${id}/approve`,

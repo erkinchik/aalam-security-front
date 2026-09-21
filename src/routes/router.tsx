@@ -7,6 +7,7 @@ import { EmergenciesListPage } from '../pages/emergencies/EmergenciesListPage'
 import { EmergencyDetailPage } from '../pages/emergencies/EmergencyDetailPage'
 import { OperatorsPage } from '../pages/operators/OperatorsPage'
 import { CreateOperatorPage } from '../pages/operators/CreateOperatorPage'
+import { OperatorDetailPage } from '../pages/operators/OperatorDetailPage'
 import { OrganizationsPage } from '../pages/organizations/OrganizationsPage'
 import { OrganizationDetailPage } from '../pages/organizations/OrganizationDetailPage'
 import { OrganizationApplicationsListPage } from '../pages/organization-applications/OrganizationApplicationsListPage'
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
       { path: 'emergencies/:id', element: <EmergencyDetailPage /> },
       { path: 'operators', element: <OperatorsPage /> },
       { path: 'operators/new', element: <CreateOperatorPage /> },
+      { path: 'operators/:id', element: <OperatorDetailPage /> },
       { path: 'organizations', element: <OrganizationsPage /> },
       { path: 'organizations/:id', element: <OrganizationDetailPage /> },
       {

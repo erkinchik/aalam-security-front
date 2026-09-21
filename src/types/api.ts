@@ -58,6 +58,14 @@ export interface EmergencySession {
   locations: EmergencyLocation[]
 }
 
+/** Общая форма страничного ответа бэкенда. */
+export interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+}
+
 export interface EmergenciesResponse {
   data: EmergencySession[]
   total: number
@@ -78,6 +86,8 @@ export interface EmergenciesQuery {
 export interface OperatorWithStatus {
   id: string
   email: string
+  displayName: string | null
+  phone: string | null
   /** На смене — только таким операторам рассылается новый SOS. */
   onShift: boolean
   shiftStartedAt: string | null
