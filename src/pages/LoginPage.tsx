@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '../stores/authStore'
+import { apiErrorMessage } from '../utils/apiError'
 import { useAlarmStore } from '../stores/alarmStore'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
@@ -40,12 +41,7 @@ export function LoginPage() {
       await login(data.email, data.password)
       navigate(from, { replace: true })
     } catch (err: unknown) {
-      setError(
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message ??
-            'Неверные учётные данные'
-          : 'Неверные учётные данные',
-      )
+      setError(apiErrorMessage(err, 'Неверные учётные данные'))
     }
   }
 
