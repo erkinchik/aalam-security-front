@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { io } from 'socket.io-client'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
+import { forceRefreshTokens } from '../api/client'
 import { useAlarmStore } from '../stores/alarmStore'
 import { ENV } from '../config/env'
 import type { EmergencySession } from '../types/api'
@@ -96,6 +97,12 @@ export function useEmergencySocket() {
       if (count > 0) refetchLists()
     }
 
+    // Сокет закрывается по истечении токена — обновляемся заранее.
+    const onAuthExpiring = () => {
+      void forceRefreshTokens()
+    }
+
+    socket.on('auth:expiring', onAuthExpiring)
     socket.on('emergency:new', onNew)
     socket.on('emergency:location_update', onLocationUpdate)
     socket.on('emergency:bootstrap', onBootstrap)
@@ -107,6 +114,7 @@ export function useEmergencySocket() {
     })
 
     return () => {
+      socket.off('auth:expiring', onAuthExpiring)
       socket.off('emergency:new', onNew)
       socket.off('emergency:location_update', onLocationUpdate)
       socket.off('emergency:bootstrap', onBootstrap)

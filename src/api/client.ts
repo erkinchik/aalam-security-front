@@ -43,6 +43,20 @@ const refreshTokens = async (): Promise<AuthTokens | null> => {
   return response.data
 }
 
+/**
+ * Принудительное обновление пары токенов. Нужно сокету: сервер предупреждает
+ * об истечении заранее, а интерсептор срабатывает только на 401, то есть уже
+ * после разрыва.
+ */
+export const forceRefreshTokens = async (): Promise<void> => {
+  try {
+    const tokens = await refreshTokens()
+    if (tokens) useAuthStore.getState().setTokens(tokens)
+  } catch (err) {
+    if (shouldLogoutOnRefreshFailure(err)) useAuthStore.getState().logout()
+  }
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken
   if (token) {
