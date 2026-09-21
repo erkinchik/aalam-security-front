@@ -55,7 +55,7 @@ export function AssignModal({
       />
       {selected && !selected.onShift && (
         <p className="mt-2 text-xs text-amber-400">
-          Оператор не на смене — вызов он увидит только когда заступит.
+          Оператор не на смене — сначала включите ему смену.
         </p>
       )}
       <div className="mt-6 flex justify-end gap-2">
@@ -63,7 +63,9 @@ export function AssignModal({
           Отмена
         </Button>
         <Button
-          disabled={!operatorId || isLoading}
+          // Сервер откажет: вне смены приложение показывает оператору только
+          // экран начала смены, и назначенный вызов он бы не увидел.
+          disabled={!operatorId || isLoading || (selected != null && !selected.onShift)}
           onClick={() => operatorId && onAssign(operatorId)}
         >
           {isLoading ? "Назначение…" : "Назначить"}
