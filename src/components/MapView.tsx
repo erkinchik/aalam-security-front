@@ -6,9 +6,28 @@ import "leaflet/dist/leaflet.css";
 const DEFAULT_CENTER: [number, number] = [42.8746, 74.5698];
 const DEFAULT_ZOOM = 12;
 
+/**
+ * bindPopup со строкой рендерит её как HTML — название объекта вида
+ * `<img onerror=…>` исполнялось бы в админке с её токенами. Собираем узлы через
+ * textContent.
+ */
+function popupContent(label: string): HTMLElement {
+  const root = document.createElement("div");
+  label.split("\n").forEach((line, i) => {
+    const row = document.createElement("div");
+    row.textContent = line;
+    if (i === 0) row.style.fontWeight = "600";
+    root.appendChild(row);
+  });
+  return root;
+}
+
 export type MapMarker = {
   position: [number, number];
-  /** Подпись во всплывающем окне. */
+  /**
+   * Подпись во всплывающем окне: обычный текст, строки через `\n`, первая —
+   * жирным. Не HTML: сюда попадают названия объектов и email заявителей.
+   */
   label?: string;
   /** Объект — куда едет группа; человек — где реально находится. */
   kind?: "venue" | "person";
@@ -114,7 +133,7 @@ export function MapView({ markers = [], track, center, zoom, height = 320, onPic
 
     for (const m of markers) {
       const marker = L.marker(m.position, { icon: icon(m.kind) }).addTo(layer);
-      if (m.label) marker.bindPopup(m.label);
+      if (m.label) marker.bindPopup(popupContent(m.label));
       if (m.onClick) {
         marker.on("click", m.onClick);
         marker.getElement()?.style.setProperty("cursor", "pointer");

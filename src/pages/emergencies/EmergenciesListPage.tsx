@@ -89,7 +89,7 @@ export function EmergenciesListPage() {
       {
         position: pos,
         kind: v ? ("venue" as const) : ("person" as const),
-        label: `<b>${v ? v.name : "Личный вызов"}</b><br/>${e.user?.email ?? ""}<br/>${STATUS_LABEL[e.status] ?? e.status}`,
+        label: `${v ? v.name : "Личный вызов"}\n${e.user?.email ?? ""}\n${STATUS_LABEL[e.status] ?? e.status}`,
         onClick: () => navigate(`/emergencies/${e.id}`),
       },
     ];
@@ -115,7 +115,8 @@ export function EmergenciesListPage() {
     setSearchParams(params);
   }
 
-  if (error) {
+  // Ошибку фонового обновления не показываем вместо уже загруженного списка.
+  if (error && !data) {
     return (
       <div className="rounded-md border border-red-500/50 bg-red-500/10 p-4 text-red-400">
         Не удалось загрузить тревоги. Попробуйте ещё раз.
