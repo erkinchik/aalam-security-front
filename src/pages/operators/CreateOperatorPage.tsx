@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createOperator } from "../../api/admin";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { apiErrorMessage } from "../../utils/apiError";
 
 const schema = z
   .object({
@@ -39,12 +40,7 @@ export function CreateOperatorPage() {
       navigate("/operators");
     },
     onError: (err: unknown) => {
-      const msg =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { message?: string } } }).response
-              ?.data?.message ?? "Не удалось создать оператора"
-          : "Не удалось создать оператора";
-      setError("root", { message: msg });
+      setError("root", { message: apiErrorMessage(err, "Не удалось создать оператора") });
     },
   });
 

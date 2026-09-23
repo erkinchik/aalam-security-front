@@ -11,6 +11,8 @@ interface AssignModalProps {
   onAssign: (operatorId: string) => void;
   isLoading: boolean;
   excludeOperatorId?: string;
+  /** Ошибка показывается внутри окна — под ним, на странице, её не видно. */
+  error?: string | null;
 }
 
 export function AssignModal({
@@ -19,6 +21,7 @@ export function AssignModal({
   onAssign,
   isLoading,
   excludeOperatorId,
+  error,
 }: AssignModalProps) {
   const [operatorId, setOperatorId] = useState("");
 
@@ -26,6 +29,9 @@ export function AssignModal({
   const { data: operatorsPage } = useQuery({
     queryKey: ["operators", "all"],
     queryFn: () => getOperators(1, 100),
+    // Занятость и смена меняются каждую минуту; с кэшем на 30 с только что
+    // освободившийся оператор оставался недоступным для назначения.
+    refetchOnMount: "always",
   });
   const operators = operatorsPage?.data ?? [];
 
@@ -58,6 +64,16 @@ export function AssignModal({
           Оператор не на смене — сначала включите ему смену.
         </p>
       )}
+      {selected && selected.onShift && selected.activeSessionCount > 0 && (
+        <p className="mt-2 text-xs text-amber-400">
+          У оператора уже есть вызов — один оператор ведёт один вызов.
+        </p>
+      )}
+      {error ? (
+        <p className="mt-3 rounded-md border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+          {error}
+        </p>
+      ) : null}
       <div className="mt-6 flex justify-end gap-2">
         <Button variant="secondary" onClick={onClose}>
           Отмена
@@ -65,7 +81,11 @@ export function AssignModal({
         <Button
           // Сервер откажет: вне смены приложение показывает оператору только
           // экран начала смены, и назначенный вызов он бы не увидел.
-          disabled={!operatorId || isLoading || (selected != null && !selected.onShift)}
+          disabled={
+            !operatorId ||
+            isLoading ||
+            (selected != null && (!selected.onShift || selected.activeSessionCount > 0))
+          }
           onClick={() => operatorId && onAssign(operatorId)}
         >
           {isLoading ? "Назначение…" : "Назначить"}

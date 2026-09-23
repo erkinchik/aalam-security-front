@@ -38,6 +38,8 @@ type ApiErrorBody = {
   code?: string
   message?: string | string[]
   error?: string
+  /** Подробности валидации — сервер кладёт их сюда, а в message ставит «Validation failed». */
+  errors?: string[]
 }
 
 export function apiErrorMessage(error: unknown, fallback: string): string {
@@ -46,6 +48,7 @@ export function apiErrorMessage(error: unknown, fallback: string): string {
   }
   const data = error.response?.data as ApiErrorBody | undefined
   if (data?.code && CODE_MESSAGES[data.code]) return CODE_MESSAGES[data.code]
+  if (data?.errors?.length) return data.errors.join(', ')
   const serverMessage = Array.isArray(data?.message)
     ? data.message.join(', ')
     : data?.message || data?.error

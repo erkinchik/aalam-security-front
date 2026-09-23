@@ -6,6 +6,7 @@ import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Modal } from "../../components/ui/Modal";
 import { Pagination } from "../../components/ui/Pagination";
+import { apiErrorMessage } from "../../utils/apiError";
 
 const PAGE_SIZE = 20;
 
@@ -143,12 +144,7 @@ export function OrganizationsPage() {
                 role="alert"
                 className="rounded-md border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-400"
               >
-                {createMutation.error &&
-                typeof createMutation.error === "object" &&
-                "response" in createMutation.error
-                  ? (createMutation.error as { response?: { data?: { message?: string } } })
-                      .response?.data?.message ?? "Не удалось создать организацию"
-                  : "Не удалось создать организацию"}
+                {apiErrorMessage(createMutation.error, "Не удалось создать организацию")}
               </div>
             )}
             <Input

@@ -33,7 +33,7 @@ export function OperatorDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
-  const { data: operator, isLoading, isError } = useQuery({
+  const { data: operator, isLoading } = useQuery({
     queryKey: ["operator", id],
     queryFn: () => getOperator(id!),
     enabled: !!id,
@@ -76,7 +76,7 @@ export function OperatorDetailPage() {
       setPassword("");
       setNotice("Пароль изменён, прежние сессии оператора отозваны");
     },
-    onError: (err) => setFormError(apiErrorMessage(err, "Не удалось сменить пароль")),
+    // Ошибку показывает само окно (ниже): страница под модалкой её не видна.
   });
 
   const deleteMutation = useMutation({
@@ -95,7 +95,8 @@ export function OperatorDetailPage() {
     return <p className="text-sm text-[var(--color-muted)]">Загрузка…</p>;
   }
 
-  if (isError || !operator) {
+  // Ошибка фонового обновления не должна прятать уже загруженную карточку.
+  if (!operator) {
     return (
       <div className="space-y-4">
         <p className="text-sm text-red-400">Оператор не найден</p>
@@ -163,7 +164,14 @@ export function OperatorDetailPage() {
           >
             {operator.onShift ? "Снять со смены" : "Поставить на смену"}
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setPasswordOpen(true)}>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              passwordMutation.reset();
+              setPasswordOpen(true);
+            }}
+          >
             Сменить пароль
           </Button>
         </div>
@@ -199,6 +207,11 @@ export function OperatorDetailPage() {
               placeholder="минимум 8 символов"
               autoFocus
             />
+            {passwordMutation.error ? (
+              <p className="rounded-md border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+                {apiErrorMessage(passwordMutation.error, "Не удалось сменить пароль")}
+              </p>
+            ) : null}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="secondary" onClick={() => setPasswordOpen(false)}>
                 Отмена

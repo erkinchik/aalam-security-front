@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MapView } from "../../components/MapView";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
 import {
   createVenue,
   deleteVenue,
@@ -25,6 +24,7 @@ import type {
   UpdateVenuePayload,
   VenueDetail,
 } from "../../types/api";
+import { apiErrorMessage } from "../../utils/apiError";
 
 const ROLE_LABEL: Record<OrgMemberRole, string> = {
   OWNER: "Владелец",
@@ -34,12 +34,7 @@ const ROLE_LABEL: Record<OrgMemberRole, string> = {
 };
 
 function extractError(err: unknown, fallback: string): string {
-  if (axios.isAxiosError(err)) {
-    const msg = err.response?.data?.message;
-    if (typeof msg === "string") return msg;
-    if (Array.isArray(msg)) return msg.join(", ");
-  }
-  return fallback;
+  return apiErrorMessage(err, fallback);
 }
 
 function CopyButton({ value }: { value: string }) {

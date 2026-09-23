@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -14,6 +14,7 @@ import { Button } from "../../components/ui/Button";
 import { AssignModal } from "../../components/emergencies/AssignModal";
 import { CloseModal } from "../../components/emergencies/CloseModal";
 import type { EmergencyLocation } from "../../types/api";
+import { apiErrorMessage } from "../../utils/apiError";
 
 function truncateId(id: string) {
   return id.slice(0, 8);
@@ -81,12 +82,20 @@ export function EmergencyDetailPage() {
     },
   });
 
+  // Страница не пересоздаётся при переходе к другому вызову — ошибка «Снять
+  // назначение» от прошлого вызова иначе оставалась на экране.
+  const resetUnassign = unassignMutation.reset;
+  useEffect(() => {
+    resetUnassign();
+  }, [id, resetUnassign]);
+
   const [showAssign, setShowAssign] = useState(false);
   const [showReassign, setShowReassign] = useState(false);
   const [showClose, setShowClose] = useState(false);
 
   if (!id) return null;
-  if (error) {
+  // Ошибку фонового обновления не показываем вместо уже загруженной карточки.
+  if (error && !data) {
     return (
       <div className="rounded-md border border-red-500/50 bg-red-500/10 p-4 text-red-400">
         Не удалось загрузить тревогу.
@@ -104,6 +113,11 @@ export function EmergencyDetailPage() {
 
   return (
     <div>
+      {unassignMutation.error ? (
+        <div className="mb-4 rounded-md border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-400">
+          {apiErrorMessage(unassignMutation.error, "Не удалось снять назначение")}
+        </div>
+      ) : null}
       <button
         onClick={() => navigate(-1)}
         className="mb-4 text-sm text-[var(--color-muted)] hover:text-[var(--color-text)]"
@@ -132,7 +146,13 @@ export function EmergencyDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2 [&>button]:w-full sm:[&>button]:w-auto">
           {canAssign && (
-            <Button size="sm" onClick={() => setShowAssign(true)}>
+            <Button
+              size="sm"
+              onClick={() => {
+                assignMutation.reset();
+                setShowAssign(true);
+              }}
+            >
               Назначить
             </Button>
           )}
@@ -140,7 +160,10 @@ export function EmergencyDetailPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setShowReassign(true)}
+              onClick={() => {
+                reassignMutation.reset();
+                setShowReassign(true);
+              }}
             >
               Переназначить
             </Button>
@@ -159,7 +182,10 @@ export function EmergencyDetailPage() {
             <Button
               variant="danger"
               size="sm"
-              onClick={() => setShowClose(true)}
+              onClick={() => {
+                closeMutation.reset();
+                setShowClose(true);
+              }}
             >
               Закрыть
             </Button>
@@ -204,7 +230,7 @@ export function EmergencyDetailPage() {
               markers={(data.locations ?? []).map((loc: EmergencyLocation, i: number) => ({
                 position: [loc.latitude, loc.longitude] as [number, number],
                 kind: data.venue ? ("venue" as const) : ("person" as const),
-                label: `${data.venue ? data.venue.name : `Точка ${i + 1}`}<br/>${new Date(
+                label: `${data.venue ? data.venue.name : `Точка ${i + 1}`}\n${new Date(
                   loc.createdAt,
                 ).toLocaleString()}`,
               }))}
@@ -245,6 +271,7 @@ export function EmergencyDetailPage() {
           onClose={() => setShowAssign(false)}
           onAssign={(operatorId) => assignMutation.mutate({ operatorId })}
           isLoading={assignMutation.isPending}
+          error={assignMutation.error ? apiErrorMessage(assignMutation.error, "Не удалось назначить") : null}
         />
       )}
       {showReassign && (
@@ -254,6 +281,9 @@ export function EmergencyDetailPage() {
           onAssign={(operatorId) => reassignMutation.mutate({ operatorId })}
           isLoading={reassignMutation.isPending}
           excludeOperatorId={data.assignedOperatorId ?? undefined}
+          error={
+            reassignMutation.error ? apiErrorMessage(reassignMutation.error, "Не удалось переназначить") : null
+          }
         />
       )}
       {showClose && (
@@ -261,6 +291,7 @@ export function EmergencyDetailPage() {
           onClose={() => setShowClose(false)}
           onCloseEmergency={(resolution) => closeMutation.mutate({ resolution })}
           isLoading={closeMutation.isPending}
+          error={closeMutation.error ? apiErrorMessage(closeMutation.error, "Не удалось закрыть") : null}
         />
       )}
     </div>

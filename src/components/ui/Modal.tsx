@@ -36,7 +36,9 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-md rounded-lg border border-[var(--color-border)] bg-surface p-6 shadow-xl">
+      {/* Прокрутка внутри окна: на невысоком экране кнопки уходили за край, а
+          body с overflow:hidden не давал до них доскроллить. */}
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-lg border border-[var(--color-border)] bg-surface p-6 shadow-xl">
         <h2 id="modal-title" className="font-display text-lg font-semibold text-[var(--color-text)] mb-4">
           {title}
         </h2>
