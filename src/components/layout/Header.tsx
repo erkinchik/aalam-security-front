@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../stores/authStore'
 import { useAlarmStore } from '../../stores/alarmStore'
 import { Button } from '../ui/Button'
@@ -8,6 +9,7 @@ type HeaderProps = {
 
 export function Header({ onMobileMenuOpen }: HeaderProps) {
   const logout = useAuthStore((s) => s.logout)
+  const queryClient = useQueryClient()
   const isAudioUnlocked = useAlarmStore((s) => s.isAudioUnlocked)
   const testBeep = useAlarmStore((s) => s.testBeep)
 
@@ -53,7 +55,12 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => logout()}
+          onClick={() => {
+            // Кэш держит вызовы и операторов — следующему, кто войдёт в этом
+            // браузере, их видеть незачем.
+            queryClient.clear()
+            void logout()
+          }}
           aria-label="Выйти"
         >
           <span className="sm:hidden inline-flex">
