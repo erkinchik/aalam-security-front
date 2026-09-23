@@ -5,7 +5,23 @@ import { useAuthStore } from '../stores/authStore'
 import { forceRefreshTokens } from '../api/client'
 import { useAlarmStore } from '../stores/alarmStore'
 import { ENV } from '../config/env'
-import type { EmergencySession } from '../types/api'
+import type { EmergencyLocation, EmergencySession } from '../types/api'
+
+/**
+ * В событиях сервер шлёт только последнюю точку. Простое слияние объектов
+ * заменяло ею всю историю — трек на карте схлопывался в одну точку на каждом
+ * пинге. Добавляем новые точки в начало (карточка хранит их от новых к старым).
+ */
+function mergeLocations(
+  prev: EmergencyLocation[] = [],
+  next: EmergencyLocation[] | undefined,
+): EmergencyLocation[] {
+  if (!next?.length) return prev
+  if (!prev.length) return next
+  const known = new Set(prev.map((l) => l.id))
+  const fresh = next.filter((l) => !known.has(l.id))
+  return fresh.length ? [...fresh, ...prev] : prev
+}
 
 const WS_NAMESPACE = '/ws'
 
@@ -56,14 +72,18 @@ export function useEmergencySocket() {
       })
     }
 
-    const patchDetail = (session: SessionPayload) => {
+    const patchDetail = (session: SessionPayload, { refetch = true } = {}) => {
       if (!session?.id) return
       // Only patch existing cache entries; never seed from a partial WS payload
       // (it may be missing arrays like `locations` and break consumers).
       queryClient.setQueryData<EmergencySession | undefined>(
         ['emergency', session.id],
-        (prev) => (prev ? { ...prev, ...session } : prev),
+        (prev) =>
+          prev
+            ? { ...prev, ...session, locations: mergeLocations(prev.locations, session.locations) }
+            : prev,
       )
+      if (!refetch) return
       void queryClient.invalidateQueries({
         queryKey: ['emergency', session.id],
         refetchType: 'active',
@@ -86,7 +106,9 @@ export function useEmergencySocket() {
     const onLocationUpdate = (payload: LocationUpdatePayload) => {
       const id = payload?.session?.id
       console.info('[ws] emergency:location_update', id)
-      if (payload?.session) patchDetail(payload.session)
+      // Без перезапроса: точка приходит каждые ~5 с, и refetch на каждую съедал
+      // лимит 60 запросов в минуту с IP — админка ловила 429.
+      if (payload?.session) patchDetail(payload.session, { refetch: false })
     }
 
     // REL-6: backend sends a snapshot of open sessions on (re)connect so we
